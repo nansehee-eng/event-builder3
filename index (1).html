@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 이벤트 빌더 | SKT air</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#E31B65;--bg:#F0F0F3;--surface:#fff;--surface2:#F7F7F9;--border:rgba(0,0,0,0.07);--border-med:rgba(0,0,0,0.12);--border-brand:rgba(227,27,101,0.22);--text:#18181F;--text-sub:#52526A;--text-muted:#9898B0;--r:10px;--rsm:7px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-width:1100px}
+/* TOPBAR */
+.topbar{height:48px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:200}
+.tb-l{display:flex;align-items:center;gap:10px}
+.tb-logo{font-size:16px;font-weight:900;color:var(--brand);letter-spacing:-0.03em}
+.tb-sep{width:1px;height:14px;background:var(--border-med)}
+.tb-name{font-size:13px;font-weight:500;color:var(--text-sub)}
+.tb-badge{font-size:10px;padding:2px 9px;border-radius:99px;background:rgba(227,27,101,0.07);color:var(--brand);border:1px solid var(--border-brand);font-weight:500}
+.tb-r{display:flex;align-items:center;gap:10px}
+.step-trail{display:flex;align-items:center}
+.st-item{font-size:11px;color:var(--text-muted);padding:0 8px}
+.st-item.active{color:var(--brand);font-weight:700}
+.st-item.done{color:var(--text-sub)}
+.st-sep{font-size:10px;color:var(--border-med)}
+/* API KEY MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-box{background:var(--surface);border-radius:16px;padding:28px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-logo{font-size:22px;font-weight:900;color:var(--brand);margin-bottom:4px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--text-sub);margin-bottom:18px;line-height:1.6}
+.modal-label{font-size:11px;font-weight:500;color:var(--text-sub);margin-bottom:4px;display:block}
+.modal-input{width:100%;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--rsm);font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--surface2);color:var(--text);margin-bottom:12px}
+.modal-input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(227,27,101,0.08);background:var(--surface)}
+.modal-note{font-size:10px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;padding:8px 10px;background:var(--surface2);border-radius:var(--rsm);border:1px solid var(--border)}
+.modal-btn{width:100%;padding:11px;border-radius:var(--rsm);border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:'Noto Sans KR',sans-serif;background:var(--brand);color:#fff;transition:opacity .12s}
+.modal-btn:hover{opacity:.87}
+.modal-link{font-size:11px;color:var(--brand);text-align:center;display:block;margin-top:10px;text-decoration:none}
+.modal-link:hover{text-decoration:underline}
+/* API PILL */
+.api-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:4px 11px;cursor:pointer;transition:border-color .12s}
+.api-pill:hover{border-color:var(--border-brand)}
+.api-dot{width:6px;height:6px;border-radius:50%;background:#9898B0;flex-shrink:0}
+.api-dot.on{background:#4CAF50}
+.api-dot.off{background:#FF5252}
+/* SHELL */
+.shell{display:flex;flex:1;overflow:hidden;height:calc(100vh - 48px)}
+/* LEFT */
+.l-panel{width:210px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.lp-head{padding:14px 14px 10px;border-bottom:1px solid var(--border)}
+.lp-head-label{font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:.07em;margin-bottom:3px}
+.lp-head-sub{font-size:10px;color:var(--text-sub);line-height:1.5}
+.step-nav{padding:8px 6px;flex:1}
+.sn-item{display:flex;align-items:flex-start;gap:9px;padding:8px 9px;border-radius:var(--r);cursor:pointer;transition:background .12s;margin-bottom:1px}
+.sn-item:hover{background:var(--surface2)}
+.sn-item.active{background:rgba(227,27,101,.06)}
+.sn-badge{width:21px;height:21px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:1px solid var(--border-med);color:var(--text-muted);background:var(--surface2);transition:all .15s}
+.sn-item.active .sn-badge{background:var(--brand);border-color:var(--brand);color:#fff}
+.sn-item.done .sn-badge{background:#E8F5E9;border-color:#81C784;color:#2E7D32}
+.sn-txt h4{font-size:12px;font-weight:500}
+.sn-txt p{font-size:10px;color:var(--text-muted);margin-top:1px;line-height:1.4}
+.sn-item.active .sn-txt h4{color:var(--brand)}
+.sn-item.done .sn-txt h4{color:var(--text-sub)}
+.flow-block{margin:0 8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);padding:10px 12px}
+.flow-block-title{font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:.07em;margin-bottom:7px}
+.fb-row{font-size:10px;color:var(--text-sub);padding:1px 0}
+.fb-arr{font-size:9px;color:var(--text-muted);padding-left:8px}
+/* MIDDLE */
+.m-panel{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg);border-right:1px solid var(--border)}
+.mp-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 22px 0;flex-shrink:0}
+.mph-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.mph-title{font-size:15px;font-weight:700}
+.mph-sub{font-size:11px;color:var(--text-sub);margin-top:3px}
+.mph-badge{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(227,27,101,.07);color:var(--brand);border:1px solid var(--border-brand);font-weight:500;flex-shrink:0;margin-top:2px}
+.tab-bar{display:flex}
+.tab{padding:7px 13px;font-size:12px;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:500}
+.tab:hover:not(.active){color:var(--text)}
+.mp-content{flex:1;overflow-y:auto;padding:18px 22px 22px}
+/* FORM */
+.sec-title{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.07em;margin-bottom:9px;margin-top:18px}
+.sec-title:first-child{margin-top:0}
+.form-row{margin-bottom:11px}
+.form-label{font-size:11px;font-weight:500;color:var(--text-sub);margin-bottom:4px;display:block}
+.form-input{width:100%;padding:8px 10px;border:1px solid var(--border-med);border-radius:var(--rsm);font-size:13px;font-family:'Noto Sans KR',sans-serif;background:var(--surface);color:var(--text);transition:border-color .12s,box-shadow .12s}
+.form-input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(227,27,101,.08)}
+textarea.form-input{min-height:58px;resize:vertical;line-height:1.6}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* TYPE GRID */
+.type-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px}
+.type-card{padding:9px 5px 8px;border:1px solid var(--border-med);border-radius:var(--rsm);cursor:pointer;text-align:center;background:var(--surface);transition:all .12s}
+.type-card:hover{border-color:var(--border-brand);background:rgba(227,27,101,.03)}
+.type-card.sel{border-color:var(--brand);background:rgba(227,27,101,.05)}
+.type-card.sel .tc-name{color:var(--brand)}
+.tc-icon{font-size:19px;margin-bottom:4px}
+.tc-name{font-size:11px;font-weight:500}
+.tc-sub{font-size:9px;color:var(--text-muted);margin-top:1px}
+/* TEMPLATE */
+.tmpl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tmpl-card{border:1px solid var(--border-med);border-radius:var(--rsm);overflow:hidden;cursor:pointer;transition:all .12s}
+.tmpl-card:hover{border-color:rgba(0,0,0,.2);transform:translateY(-1px)}
+.tmpl-card.sel{border-color:var(--brand);border-width:1.5px}
+.tmpl-prev{height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.tmpl-prev.pink{background:linear-gradient(135deg,#C8105A,#FF6B9D)}
+.tmpl-prev.blue{background:linear-gradient(135deg,#004F99,#4DA6FF)}
+.tmpl-prev.orange{background:linear-gradient(135deg,#CC6600,#FFD700)}
+.tmpl-prev.green{background:linear-gradient(135deg,#145220,#4CAF50)}
+.tmpl-pt{font-size:11px;font-weight:700;color:#fff}
+.tmpl-prev.orange .tmpl-pt{color:#1a1a1a}
+.tmpl-ps{font-size:9px;color:rgba(255,255,255,.85)}
+.tmpl-prev.orange .tmpl-ps{color:rgba(0,0,0,.6)}
+.tmpl-info{padding:7px 9px}
+.tmpl-name{font-size:11px;font-weight:500}
+.tmpl-tags{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.ttag{font-size:9px;padding:2px 6px;border-radius:99px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)}
+.ttag.hot{background:rgba(227,27,101,.07);color:var(--brand);border-color:var(--border-brand)}
+/* NB BOX */
+.nb-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start}
+.nb-icon{width:30px;height:30px;border-radius:8px;background:#0066B3;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.nb-title{font-size:12px;font-weight:700;margin-bottom:2px}
+.nb-sub{font-size:10px;color:var(--text-muted);margin-bottom:7px}
+.nb-insights{display:flex;flex-direction:column;gap:3px}
+.nb-insight{font-size:11px;color:var(--text-sub);line-height:1.6}
+/* AI CARD */
+.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:13px}
+.ai-card-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.ai-chip{width:27px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;background:var(--brand)}
+.ai-card-title{font-size:13px;font-weight:700}
+.ai-card-sub{font-size:11px;color:var(--text-muted)}
+.model-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.model-btn{padding:5px 12px;border-radius:99px;border:1px solid var(--border-med);font-size:11px;background:var(--surface);color:var(--text-sub);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s}
+.model-btn:hover{border-color:var(--brand);color:var(--brand)}
+.model-btn.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;margin-bottom:10px}
+.chip{font-size:10px;padding:3px 9px;border:1px solid var(--border-med);border-radius:99px;cursor:pointer;color:var(--text-sub);background:var(--surface2);transition:all .12s}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.prompt-ta{width:100%;padding:8px 10px;border:1px solid var(--border-med);border-radius:var(--rsm);font-size:12px;font-family:'Noto Sans KR',sans-serif;background:var(--surface);color:var(--text);resize:none;height:52px;line-height:1.55}
+.prompt-ta:focus{outline:none;border-color:var(--brand)}
+.gen-btn{width:100%;padding:10px;border-radius:var(--rsm);border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:'Noto Sans KR',sans-serif;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .12s;margin-top:10px}
+.gen-btn:hover{opacity:.87}
+.gen-btn:disabled{opacity:.4;cursor:not-allowed}
+/* RESULTS */
+.res-block{margin-top:14px}
+.res-label{font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.06em;margin-bottom:6px}
+.res-list{display:flex;flex-direction:column;gap:5px}
+.res-item{display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border:1px solid var(--border-med);border-radius:var(--rsm);cursor:pointer;background:var(--surface);transition:all .12s}
+.res-item:hover{border-color:var(--border-brand)}
+.res-item.sel{border-color:var(--brand);background:rgba(227,27,101,.04)}
+.res-num{width:17px;height:17px;border-radius:50%;background:var(--surface2);border:1px solid var(--border-med);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-muted);flex-shrink:0}
+.res-item.sel .res-num{background:var(--brand);border-color:var(--brand);color:#fff}
+.res-text{font-size:12px;line-height:1.6;flex:1}
+/* LOADER */
+.loader-box{display:flex;flex-direction:column;align-items:center;padding:26px;gap:10px}
+.dots{display:flex;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--brand);animation:dp 1.2s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.loader-txt{font-size:12px;color:var(--text-sub)}
+/* DEPLOY */
+.check-list{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+.check-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--rsm);background:var(--surface);border:1px solid var(--border);font-size:12px}
+.ck-ico{width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+.ck-ok{background:#E8F5E9;color:#2E7D32}
+.ck-warn{background:#FFF8E1;color:#E65100}
+.ck-val{font-size:10px;color:var(--text-muted);margin-left:auto}
+.channel-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
+.ch-btn{padding:5px 13px;border-radius:99px;border:1px solid var(--border-med);font-size:11px;background:var(--surface);color:var(--text-sub);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .12s}
+.ch-btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.ch-btn:hover:not(.on){border-color:var(--brand);color:var(--brand)}
+.sum-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:11px 14px;margin-bottom:13px}
+.sum-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)}
+.sum-row:last-child{border-bottom:none}
+.sum-k{color:var(--text-sub)}
+.sum-v{font-weight:500}
+.deploy-btn{width:100%;padding:11px;border-radius:var(--rsm);border:none;cursor:pointer;font-size:14px;font-weight:700;font-family:'Noto Sans KR',sans-serif;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .12s}
+.deploy-btn:hover{opacity:.87}
+.export-btn{width:100%;padding:9px;border-radius:var(--rsm);border:1px solid var(--border-brand);cursor:pointer;font-size:12px;font-weight:500;font-family:'Noto Sans KR',sans-serif;background:var(--surface);color:var(--brand);margin-top:8px;transition:all .12s}
+.export-btn:hover{background:rgba(227,27,101,.05)}
+.done-box{text-align:center;padding:22px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border);margin-top:11px}
+.done-em{font-size:34px;margin-bottom:7px}
+.done-title{font-size:14px;font-weight:700;color:#2E7D32}
+.done-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+/* HISTORY */
+.hist-list{display:flex;flex-direction:column;gap:7px}
+.hist-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 13px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.hist-name{font-size:12px;font-weight:500;margin-bottom:3px}
+.hist-meta{font-size:10px;color:var(--text-muted)}
+.hist-ctr{font-size:13px;font-weight:700;text-align:right}
+.hist-ctr.good{color:#2E7D32}
+.hist-ctr.bad{color:#C62828}
+.hist-tag{font-size:9px;color:var(--text-muted);text-align:right;margin-top:2px}
+/* STATUS */
+.statusbar{height:44px;flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.sb-info{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-muted)}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#4CAF50}
+.sb-btns{display:flex;gap:7px}
+.btn-prev{padding:6px 14px;border:1px solid var(--border-med);border-radius:var(--rsm);font-size:12px;background:none;cursor:pointer;color:var(--text);font-family:'Noto Sans KR',sans-serif}
+.btn-prev:hover{background:var(--surface2)}
+.btn-next{padding:6px 16px;border:none;border-radius:var(--rsm);font-size:12px;font-weight:600;background:var(--brand);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.btn-next:hover{opacity:.88}
+/* RIGHT PREVIEW */
+.r-panel{width:300px;flex-shrink:0;background:var(--bg);display:flex;flex-direction:column;border-left:1px solid var(--border)}
+.rp-header{height:48px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.rp-title{font-size:12px;font-weight:700;color:var(--text-sub)}
+.rp-sub{font-size:10px;color:var(--text-muted)}
+.rp-live{display:flex;align-items:center;gap:4px;font-size:10px;color:#2E7D32;font-weight:600}
+.rp-live-dot{width:5px;height:5px;border-radius:50%;background:#4CAF50;animation:lv 1.4s ease-in-out infinite}
+@keyframes lv{0%,100%{opacity:1}50%{opacity:.3}}
+.rp-body{flex:1;overflow-y:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start}
+.phone-wrap{width:240px}
+.phone-frame{background:var(--surface);border-radius:18px;border:1px solid var(--border-med);overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.09)}
+.phone-bar{background:#111;height:18px;display:flex;align-items:center;justify-content:center}
+.phone-notch{width:40px;height:5px;background:#333;border-radius:99px}
+.phone-nav{background:var(--surface);border-bottom:1px solid rgba(0,0,0,.06);padding:6px 10px;display:flex;align-items:center;justify-content:space-between}
+.pn-back{font-size:9px;color:#888}
+.pn-logo{font-size:11px;font-weight:900;color:var(--brand)}
+/* EVENT PREVIEW */
+.ep-hero{padding:14px 13px 0;position:relative;overflow:hidden}
+.ep-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:16px;border-radius:16px 16px 0 0;background:#fff}
+.ep-hero.pink{background:linear-gradient(155deg,#C8105A,#E31B65 50%,#FF6B9D)}
+.ep-hero.blue{background:linear-gradient(155deg,#004F99,#0066B3 50%,#4DA6FF)}
+.ep-hero.orange{background:linear-gradient(155deg,#CC6600,#FF8C00 50%,#FFD700)}
+.ep-hero.green{background:linear-gradient(155deg,#145220,#1E7A30 50%,#4CAF50)}
+.ep-period{display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);border-radius:99px;padding:2px 8px;font-size:8px;margin-bottom:7px}
+.ep-dot{width:4px;height:4px;border-radius:50%;background:#FFD700;animation:lv 1.4s ease-in-out infinite}
+.ep-title{font-size:12px;font-weight:900;line-height:1.35;margin-bottom:5px}
+.ep-title.lt{color:#fff}
+.ep-title.dk{color:#1a1a1a}
+.ep-sub{font-size:9px;line-height:1.6;margin-bottom:11px}
+.ep-sub.lt{color:rgba(255,255,255,.88)}
+.ep-sub.dk{color:rgba(0,0,0,.68)}
+.ep-reward-card{background:#fff;border-radius:10px 10px 0 0;padding:10px 11px;display:flex;align-items:center;gap:8px;position:relative;z-index:1}
+.ep-ri{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#FFE4EE,#FFCCE0);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.ep-rl{font-size:8px;color:#999;margin-bottom:1px}
+.ep-ra{font-size:16px;font-weight:900;letter-spacing:-.03em;line-height:1}
+.ep-ru{font-size:9px;color:#666;margin-top:1px}
+.ep-body{padding:8px 11px 13px;background:#fff}
+.ep-slabel{font-size:8px;font-weight:700;letter-spacing:.07em;margin-bottom:5px;margin-top:7px}
+.ep-steps{display:flex;flex-direction:column;gap:4px}
+.ep-step{display:flex;gap:6px;align-items:flex-start}
+.ep-sn{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0;margin-top:1px}
+.ep-st{font-size:10px;font-weight:600;margin-bottom:1px}
+.ep-sd{font-size:8px;color:#777;line-height:1.5}
+.ep-cta{border-radius:7px;padding:8px;text-align:center;font-size:10px;font-weight:700;color:#fff;margin-top:8px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-logo">air</div>
+    <div class="modal-title">AI 이벤트 빌더 시작하기</div>
+    <div class="modal-sub">Anthropic API 키를 입력하면 Claude가 직접 마케팅 문구를 생성합니다.<br>키는 브라우저 내에서만 사용되며 외부로 전송되지 않습니다.</div>
+    <label class="modal-label">Anthropic API Key</label>
+    <input class="modal-input" id="api-key-input" type="password" placeholder="sk-ant-api03-...">
+    <div class="modal-note">🔒 API 키는 이 브라우저 세션에만 저장됩니다. 새로고침 시 재입력이 필요합니다.<br>발급: console.anthropic.com → API Keys</div>
+    <button class="modal-btn" onclick="startWithKey()">시작하기 →</button>
+    <a class="modal-link" href="https://console.anthropic.com" target="_blank">API 키 발급받기 ↗</a>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="tb-l">
+    <span class="tb-logo">air</span><span class="tb-sep"></span>
+    <span class="tb-name">AI 이벤트 빌더</span>
+    <span class="tb-badge">Antigravity × NanoBanana × Claude</span>
+  </div>
+  <div class="tb-r">
+    <div class="step-trail" id="step-trail"></div>
+    <div class="api-pill" onclick="document.getElementById('modal').style.display='flex'" title="API 키 변경">
+      <span class="api-dot" id="api-dot"></span><span id="api-label">API 키 미설정</span>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="l-panel">
+    <div class="lp-head"><div class="lp-head-label">워크플로우</div><div class="lp-head-sub">기획자가 단독으로<br>이벤트를 생성·배포합니다</div></div>
+    <div class="step-nav">
+      <div class="sn-item active" id="sn1" onclick="goStep(1)"><div class="sn-badge" id="sb1">1</div><div class="sn-txt"><h4>기본 정보</h4><p>유형·기간·혜택 입력</p></div></div>
+      <div class="sn-item" id="sn2" onclick="goStep(2)"><div class="sn-badge" id="sb2">2</div><div class="sn-txt"><h4>템플릿 선택</h4><p>성과 기반 AI 추천</p></div></div>
+      <div class="sn-item" id="sn3" onclick="goStep(3)"><div class="sn-badge" id="sb3">3</div><div class="sn-txt"><h4>AI 문구 생성</h4><p>Claude API 연동</p></div></div>
+      <div class="sn-item" id="sn4" onclick="goStep(4)"><div class="sn-badge" id="sb4">4</div><div class="sn-txt"><h4>미리보기 확인</h4><p>우측 패널 실시간</p></div></div>
+      <div class="sn-item" id="sn5" onclick="goStep(5)"><div class="sn-badge" id="sb5">5</div><div class="sn-txt"><h4>배포</h4><p>채널 선택 후 단독 배포</p></div></div>
+    </div>
+    <div class="flow-block">
+      <div class="flow-block-title">AI 작동 구조</div>
+      <div class="fb-row">📊 과거 이벤트 분석</div><div class="fb-arr">↓</div>
+      <div class="fb-row">🧠 AI 패턴 추출</div><div class="fb-arr">↓</div>
+      <div class="fb-row">🎨 최적 템플릿 선택</div><div class="fb-arr">↓</div>
+      <div class="fb-row">✨ 문구·이미지 생성</div><div class="fb-arr">↓</div>
+      <div class="fb-row">✅ 기획자 단독 배포</div>
+    </div>
+  </div>
+
+  <div class="m-panel">
+    <div class="mp-header">
+      <div class="mph-top">
+        <div><div class="mph-title" id="step-title"></div><div class="mph-sub" id="step-sub"></div></div>
+        <div class="mph-badge" id="step-badge">Step 1 / 5</div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab active" id="tab-setup" onclick="setTab('setup')">설정</button>
+        <button class="tab" id="tab-history" onclick="setTab('history')">이벤트 히스토리</button>
+      </div>
+    </div>
+    <div class="mp-content">
+
+      <div id="v1">
+        <div class="sec-title">이벤트 유형</div>
+        <div class="type-grid">
+          <div class="type-card sel" onclick="selType(this)"><div class="tc-icon">👥</div><div class="tc-name">친구초대</div><div class="tc-sub">추천인 포인트</div></div>
+          <div class="type-card" onclick="selType(this)"><div class="tc-icon">🎟</div><div class="tc-name">쿠폰/할인</div><div class="tc-sub">요금 할인</div></div>
+          <div class="type-card" onclick="selType(this)"><div class="tc-icon">🎰</div><div class="tc-name">럭키드로우</div><div class="tc-sub">추첨/당첨</div></div>
+          <div class="type-card" onclick="selType(this)"><div class="tc-icon">📅</div><div class="tc-name">출석체크</div><div class="tc-sub">연속 접속</div></div>
+          <div class="type-card" onclick="selType(this)"><div class="tc-icon">⭐</div><div class="tc-name">리뷰이벤트</div><div class="tc-sub">후기 작성</div></div>
+          <div class="type-card" onclick="selType(this)"><div class="tc-icon">➕</div><div class="tc-name">기타</div><div class="tc-sub">직접 입력</div></div>
+        </div>
+        <div class="sec-title">이벤트 정보</div>
+        <div class="form-row"><label class="form-label">이벤트 제목</label><input class="form-input" id="ev-title" value="4월 한정 친구초대 1만P 증정 이벤트" oninput="syncPreview()"></div>
+        <div class="form-row fg2">
+          <div><label class="form-label">시작일</label><input class="form-input" type="date" id="ev-start" value="2025-04-01" oninput="syncPreview()"></div>
+          <div><label class="form-label">종료일</label><input class="form-input" type="date" id="ev-end" value="2025-04-30" oninput="syncPreview()"></div>
+        </div>
+        <div class="form-row fg2">
+          <div><label class="form-label">혜택</label><input class="form-input" id="ev-reward" value="10,000P" oninput="syncPreview()"></div>
+          <div><label class="form-label">대상 고객</label><input class="form-input" id="ev-target" value="SKT air 가입 고객 전체"></div>
+        </div>
+        <div class="form-row"><label class="form-label">이벤트 설명</label><textarea class="form-input" id="ev-desc" oninput="syncPreview()">내가 초대한 친구가 가입하면 1만P를 증정하는 이벤트입니다.</textarea></div>
+      </div>
+
+      <div id="v2" class="hidden">
+        <div class="nb-box"><div class="nb-icon">NB</div><div><div class="nb-title">NanoBanana 패턴 분석 완료</div><div class="nb-sub">최근 6개월 친구초대 이벤트 12건 분석</div><div class="nb-insights"><div class="nb-insight">🏆 핑크/레드 계열 친구초대 이벤트 CTR 23% 높음</div><div class="nb-insight">📊 포인트 강조형 레이아웃 전환율 최상위</div><div class="nb-insight">📅 월 한정 문구 사용 시 긴급성·참여율 상승</div></div></div></div>
+        <div class="sec-title">최적 템플릿 선택</div>
+        <div class="tmpl-grid">
+          <div class="tmpl-card sel" onclick="selTmpl(this,'pink')"><div class="tmpl-prev pink"><div class="tmpl-pt">친구초대</div><div class="tmpl-ps">1만P 즉시 지급</div></div><div class="tmpl-info"><div class="tmpl-name">핑크 포인트형</div><div class="tmpl-tags"><span class="ttag hot">⭐ 추천</span><span class="ttag">CTR +23%</span></div></div></div>
+          <div class="tmpl-card" onclick="selTmpl(this,'blue')"><div class="tmpl-prev blue"><div class="tmpl-pt">친구초대</div><div class="tmpl-ps">1만P 즉시 지급</div></div><div class="tmpl-info"><div class="tmpl-name">블루 심플형</div><div class="tmpl-tags"><span class="ttag">안정적</span><span class="ttag">CVR +11%</span></div></div></div>
+          <div class="tmpl-card" onclick="selTmpl(this,'orange')"><div class="tmpl-prev orange"><div class="tmpl-pt">친구초대</div><div class="tmpl-ps">1만P 즉시 지급</div></div><div class="tmpl-info"><div class="tmpl-name">오렌지 에너지형</div><div class="tmpl-tags"><span class="ttag">젊은층</span><span class="ttag">CTR +17%</span></div></div></div>
+          <div class="tmpl-card" onclick="selTmpl(this,'green')"><div class="tmpl-prev green"><div class="tmpl-pt">친구초대</div><div class="tmpl-ps">1만P 즉시 지급</div></div><div class="tmpl-info"><div class="tmpl-name">그린 신뢰형</div><div class="tmpl-tags"><span class="ttag">중장년층</span><span class="ttag">CVR +8%</span></div></div></div>
+        </div>
+      </div>
+
+      <div id="v3" class="hidden">
+        <div class="ai-card">
+          <div class="ai-card-head"><div class="ai-chip" id="ai-chip-icon">C</div><div><div class="ai-card-title">AI 문구 생성</div><div class="ai-card-sub">Claude API로 마케팅 문구를 자동 생성합니다</div></div></div>
+          <div class="model-row">
+            <button class="model-btn sel" onclick="selModel(this,'claude')">Claude (기본)</button>
+            <button class="model-btn" onclick="selModel(this,'nano')">NanoBanana (SKT특화)</button>
+            <button class="model-btn" onclick="selModel(this,'gemini')">Gemini</button>
+          </div>
+          <label class="form-label">추가 지시사항 (선택)</label>
+          <textarea class="prompt-ta" id="extra-prompt" placeholder="예: 더 긴박한 느낌으로, MZ세대 타겟, 이모지 활용..."></textarea>
+          <div class="chip-row">
+            <span class="chip" onclick="addChip('긴박감 강조')">긴박감 강조</span>
+            <span class="chip" onclick="addChip('친근한 말투')">친근한 말투</span>
+            <span class="chip" onclick="addChip('혜택 부각')">혜택 부각</span>
+            <span class="chip" onclick="addChip('이모지 활용')">이모지 활용</span>
+            <span class="chip" onclick="addChip('짧고 임팩트있게')">짧고 임팩트있게</span>
+          </div>
+          <button class="gen-btn" id="gen-btn" onclick="runGenerate()"><span>✨</span> AI로 문구 생성하기</button>
+        </div>
+        <div id="gen-loading" class="hidden"><div class="loader-box"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="loader-txt" id="load-msg">Claude가 최적 문구를 생성 중...</div></div></div>
+        <div id="gen-result" class="hidden">
+          <div class="res-block"><div class="res-label">제목 문구 — 하나를 선택하세요</div><div class="res-list" id="r-titles"></div></div>
+          <div class="res-block"><div class="res-label">부제목 문구</div><div class="res-list" id="r-subs"></div></div>
+          <div class="res-block"><div class="res-label">CTA 버튼 문구</div><div class="res-list" id="r-ctas"></div></div>
+        </div>
+      </div>
+
+      <div id="v4" class="hidden">
+        <div class="nb-box"><div class="nb-icon" style="background:var(--brand)">✓</div><div><div class="nb-title">우측 패널에서 실시간으로 미리보기를 확인하세요</div><div class="nb-sub" style="margin-bottom:0">템플릿·문구를 변경하면 즉시 반영됩니다.</div></div></div>
+        <div class="sec-title">선택된 구성 요약</div>
+        <div class="check-list">
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>템플릿</span><span class="ck-val" id="v4-tmpl">—</span></div>
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>제목</span><span class="ck-val" id="v4-title" style="max-width:300px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>CTA 버튼</span><span class="ck-val" id="v4-cta">—</span></div>
+        </div>
+      </div>
+
+      <div id="v5" class="hidden">
+        <div class="sec-title">배포 전 체크리스트</div>
+        <div class="check-list">
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>이벤트 기간 설정</span><span class="ck-val" id="ck-period">—</span></div>
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>혜택 내용 확인</span><span class="ck-val" id="ck-reward">—</span></div>
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>템플릿 선택</span><span class="ck-val" id="ck-tmpl">—</span></div>
+          <div class="check-item"><div class="ck-ico ck-ok">✓</div><span>AI 문구 생성</span><span class="ck-val" id="ck-gen">—</span></div>
+          <div class="check-item"><div class="ck-ico ck-warn">!</div><span>법무/컴플라이언스 검토</span><span class="ck-val">선택사항</span></div>
+        </div>
+        <div class="sec-title">배포 채널 선택</div>
+        <div class="channel-row">
+          <button class="ch-btn on" onclick="this.classList.toggle('on')">SKT air 앱</button>
+          <button class="ch-btn on" onclick="this.classList.toggle('on')">T world</button>
+          <button class="ch-btn" onclick="this.classList.toggle('on')">공지사항 페이지</button>
+          <button class="ch-btn" onclick="this.classList.toggle('on')">푸시알림</button>
+          <button class="ch-btn" onclick="this.classList.toggle('on')">SMS</button>
+        </div>
+        <div class="sec-title">배포 요약</div>
+        <div class="sum-box">
+          <div class="sum-row"><span class="sum-k">이벤트명</span><span class="sum-v" id="s-title">—</span></div>
+          <div class="sum-row"><span class="sum-k">기간</span><span class="sum-v" id="s-period">—</span></div>
+          <div class="sum-row"><span class="sum-k">혜택</span><span class="sum-v" id="s-reward">—</span></div>
+          <div class="sum-row"><span class="sum-k">템플릿</span><span class="sum-v" id="s-tmpl">—</span></div>
+          <div class="sum-row"><span class="sum-k">AI 모델</span><span class="sum-v" id="s-model">Claude</span></div>
+        </div>
+        <button class="deploy-btn" id="deploy-btn" onclick="doDeploy()">🚀 지금 바로 배포하기</button>
+        <button class="export-btn" onclick="doExport()">📥 이벤트 페이지 HTML 다운로드</button>
+        <div id="deploy-done" class="done-box hidden"><div class="done-em">🎉</div><div class="done-title">배포 완료!</div><div class="done-sub">SKT air 앱 · T world에 이벤트가 게시되었습니다</div></div>
+      </div>
+
+      <div id="v-history" class="hidden">
+        <div class="sec-title">최근 이벤트 성과 히스토리</div>
+        <div class="hist-list">
+          <div class="hist-item"><div><div class="hist-name">3월 데이터 무제한 요금제 출시 기념</div><div class="hist-meta">2025.03.01 ~ 03.31 · 쿠폰 · 블루 심플형</div></div><div><div class="hist-ctr good">CTR 18.3%</div><div class="hist-tag">CVR 7.2%</div></div></div>
+          <div class="hist-item"><div><div class="hist-name">설날 특별 친구초대 2만P 이벤트</div><div class="hist-meta">2025.01.27 ~ 02.10 · 친구초대 · 핑크형</div></div><div><div class="hist-ctr good">CTR 26.1%</div><div class="hist-tag">CVR 11.4%</div></div></div>
+          <div class="hist-item"><div><div class="hist-name">연말 출석체크 럭키드로우</div><div class="hist-meta">2024.12.01 ~ 12.31 · 출석체크 · 오렌지형</div></div><div><div class="hist-ctr good">CTR 21.7%</div><div class="hist-tag">CVR 9.8%</div></div></div>
+          <div class="hist-item"><div><div class="hist-name">11월 리뷰 작성 쿠폰 증정</div><div class="hist-meta">2024.11.01 ~ 11.30 · 리뷰 · 그린형</div></div><div><div class="hist-ctr bad">CTR 9.2%</div><div class="hist-tag">CVR 3.1%</div></div></div>
+          <div class="hist-item"><div><div class="hist-name">10월 친구초대 5천P 한정</div><div class="hist-meta">2024.10.01 ~ 10.31 · 친구초대 · 핑크형</div></div><div><div class="hist-ctr good">CTR 19.8%</div><div class="hist-tag">CVR 8.5%</div></div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="statusbar">
+      <div class="sb-info"><div class="sb-dot"></div><span id="sb-txt">Step 1 / 5</span></div>
+      <div class="sb-btns">
+        <button class="btn-prev hidden" id="btn-prev" onclick="prevStep()">← 이전</button>
+        <button class="btn-next" id="btn-next" onclick="nextStep()">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="r-panel">
+    <div class="rp-header">
+      <div><div class="rp-title">모바일 미리보기</div><div class="rp-sub">입력 즉시 반영</div></div>
+      <div class="rp-live"><div class="rp-live-dot"></div>LIVE</div>
+    </div>
+    <div class="rp-body">
+      <div class="phone-wrap">
+        <div class="phone-frame">
+          <div class="phone-bar"><div class="phone-notch"></div></div>
+          <div class="phone-nav"><span class="pn-back">← 이벤트</span><span class="pn-logo">air</span><span></span></div>
+          <div id="pv-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let step=1,tmpl='pink',model='claude',apiKey='';
+let genTitles=[],genSubs=[],genCtas=[],selTI=0,selSI=0,selCI=0;
+const tmplNames={pink:'핑크 포인트형',blue:'블루 심플형',orange:'오렌지 에너지형',green:'그린 신뢰형'};
+const TITLES=['기본 정보 입력','템플릿 선택','AI 문구 생성','미리보기 확인','배포'];
+const SUBS=['이벤트 유형·기간·혜택을 설정하면 AI가 최적 템플릿을 추천합니다','NanoBanana가 과거 성과를 분석해 최적 템플릿을 추천합니다','Claude API로 제목·부제·CTA 문구를 자동 생성합니다','우측 패널에서 모바일 이벤트 페이지를 실시간으로 확인하세요','채널을 선택하고 기획자가 직접 이벤트를 배포합니다'];
+
+function startWithKey(){
+  const k=document.getElementById('api-key-input').value.trim();
+  if(!k){alert('API 키를 입력해주세요.');return;}
+  apiKey=k;
+  document.getElementById('modal').style.display='none';
+  document.getElementById('api-dot').className='api-dot on';
+  document.getElementById('api-label').textContent='Claude API 연결됨';
+}
+
+function renderTrail(){document.getElementById('step-trail').innerHTML=TITLES.map((t,i)=>{const n=i+1,cls=n<step?'done':n===step?'active':'';return(i>0?'<span class="st-sep">›</span>':'')+`<span class="st-item ${cls}">${t}</span>`;}).join('');}
+function goStep(n){step=n;renderStep();}
+function nextStep(){if(step<5){step++;renderStep();}}
+function prevStep(){if(step>1){step--;renderStep();}}
+function renderStep(){
+  for(let i=1;i<=5;i++){document.getElementById('v'+i).classList.add('hidden');const sn=document.getElementById('sn'+i);sn.classList.remove('active','done');const sb=document.getElementById('sb'+i);sb.className='sn-badge';sb.textContent=i;}
+  document.getElementById('v-history').classList.add('hidden');
+  document.getElementById('v'+step).classList.remove('hidden');
+  for(let i=1;i<step;i++){document.getElementById('sn'+i).classList.add('done');document.getElementById('sb'+i).textContent='✓';}
+  document.getElementById('sn'+step).classList.add('active');
+  document.getElementById('step-title').textContent=TITLES[step-1];
+  document.getElementById('step-sub').textContent=SUBS[step-1];
+  document.getElementById('step-badge').textContent='Step '+step+' / 5';
+  document.getElementById('sb-txt').textContent='Step '+step+' / 5 — '+TITLES[step-1];
+  document.getElementById('btn-prev').classList.toggle('hidden',step===1);
+  document.getElementById('btn-next').textContent=step===5?'완료':'다음 →';
+  if(step===4)fillV4();if(step===5)fillSummary();
+  setTab('setup');renderTrail();
+}
+function setTab(t){
+  ['setup','history'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t));
+  document.getElementById('v-history').classList.add('hidden');
+  for(let i=1;i<=5;i++)document.getElementById('v'+i).classList.add('hidden');
+  if(t==='history')document.getElementById('v-history').classList.remove('hidden');
+  else document.getElementById('v'+step).classList.remove('hidden');
+}
+function selType(el){document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+function selTmpl(el,t){tmpl=t;syncPreview();document.querySelectorAll('.tmpl-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+function selModel(el,m){model=m;document.querySelectorAll('.model-btn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');const ch=document.getElementById('ai-chip-icon');const L={claude:'C',nano:'NB',gemini:'G'};const C={claude:'var(--brand)',nano:'#0066B3',gemini:'#1E7A30'};ch.textContent=L[m];ch.style.background=C[m];}
+function addChip(txt){const ta=document.getElementById('extra-prompt');ta.value=ta.value?ta.value+', '+txt:txt;}
+
+async function runGenerate(){
+  if(!apiKey){alert('API 키를 먼저 입력해주세요.\n상단 우측의 API 상태를 클릭하세요.');return;}
+  const btn=document.getElementById('gen-btn');btn.disabled=true;
+  document.getElementById('gen-result').classList.add('hidden');
+  document.getElementById('gen-loading').classList.remove('hidden');
+  const msgs=['Claude가 최적 문구를 생성 중...','SKT 프로모션 패턴 분석 중...','후보 문구 비교 중...','최종 문구 정리 중...'];
+  let mi=0;const iv=setInterval(()=>{document.getElementById('load-msg').textContent=msgs[mi++%msgs.length];},900);
+  const systemPrompt=`당신은 SKT 프로모션 이벤트 전문 카피라이터입니다. 반드시 JSON 형식으로만 응답하고 다른 설명 없이 순수 JSON만 반환하세요.`;
+  const modelConf={claude:'claude-sonnet-4-20250514',nano:'claude-sonnet-4-20250514',gemini:'claude-sonnet-4-20250514'};
+  const userPrompt=`다음 이벤트에 대한 마케팅 문구를 3가지 안으로 생성해주세요.\n이벤트명: ${g('ev-title')}\n혜택: ${g('ev-reward')}\n설명: ${g('ev-desc')}\n추가 요구사항: ${g('extra-prompt')||'없음'}\n\n아래 JSON 형식으로만 응답하세요:\n{"titles":["제목1","제목2","제목3"],"subtitles":["부제1","부제2","부제3"],"ctas":["CTA1","CTA2","CTA3"]}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:modelConf[model]||'claude-sonnet-4-20250514',max_tokens:1000,system:systemPrompt,messages:[{role:'user',content:userPrompt}]})
+    });
+    clearInterval(iv);document.getElementById('gen-loading').classList.add('hidden');btn.disabled=false;
+    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'API 오류');}
+    const data=await res.json();
+    const raw=data.content[0].text.trim().replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(raw);
+    genTitles=parsed.titles||[];genSubs=parsed.subtitles||[];genCtas=parsed.ctas||[];
+    selTI=0;selSI=0;selCI=0;
+    buildList('r-titles',genTitles,0,i=>{selTI=i;syncPreview();});
+    buildList('r-subs',genSubs,0,i=>{selSI=i;syncPreview();});
+    buildList('r-ctas',genCtas,0,i=>{selCI=i;syncPreview();});
+    document.getElementById('gen-result').classList.remove('hidden');syncPreview();
+  }catch(e){
+    clearInterval(iv);document.getElementById('gen-loading').classList.add('hidden');btn.disabled=false;
+    alert('문구 생성 오류: '+e.message+'\n\nAPI 키를 확인하거나 다시 시도해주세요.');
+  }
+}
+
+function buildList(id,items,def,onSel){const el=document.getElementById(id);el.innerHTML='';items.forEach((txt,i)=>{const d=document.createElement('div');d.className='res-item'+(i===def?' sel':'');d.innerHTML=`<div class="res-num">${i+1}</div><div class="res-text">${txt}</div>`;d.onclick=()=>{el.querySelectorAll('.res-item').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');onSel(i);};el.appendChild(d);});}
+function g(id){const el=document.getElementById(id);return el?el.value:'';}
+function fmt(d){return d?d.replace(/-/g,'.'):''}
+function getC(){const m={pink:['#C8105A','#E31B65','#FF6B9D','lt'],blue:['#004F99','#0066B3','#4DA6FF','lt'],orange:['#CC6600','#FF8C00','#FFD700','dk'],green:['#145220','#1E7A30','#4CAF50','lt']};return m[tmpl]||m.pink;}
+function syncPreview(){
+  const pv=document.getElementById('pv-content');if(!pv)return;
+  const title=g('ev-title')||'4월 한정 친구초대 1만P 증정';
+  const reward=g('ev-reward')||'10,000P';const s=g('ev-start'),e=g('ev-end');
+  const[from,mid,to,tc]=getC();
+  const dt=genTitles[selTI]||title;const ds=genSubs[selSI]||(g('ev-desc')||'친구를 초대하면 포인트를 드립니다.');const dc=genCtas[selCI]||'지금 친구 초대하기 →';
+  pv.innerHTML=`<div class="ep-hero ${tmpl}"><div class="ep-period"><span class="ep-dot"></span>${fmt(s)} ~ ${fmt(e)} 진행중</div><div class="ep-title ${tc}">${dt}</div><div class="ep-sub ${tc}">${ds}</div><div class="ep-reward-card"><div class="ep-ri">🎁</div><div><div class="ep-rl">즉시 지급</div><div class="ep-ra" style="color:${mid}">${reward}</div><div class="ep-ru">T포인트</div></div></div></div><div class="ep-body"><div class="ep-slabel" style="color:${mid}">참여 방법</div><div class="ep-steps"><div class="ep-step"><div class="ep-sn" style="background:${mid}">1</div><div><div class="ep-st">초대 링크 공유</div><div class="ep-sd">SKT air 앱에서 나만의 초대 링크 공유</div></div></div><div class="ep-step"><div class="ep-sn" style="background:${mid}">2</div><div><div class="ep-st">친구가 SKT air 가입</div><div class="ep-sd">초대받은 친구가 링크로 신규 가입 완료</div></div></div><div class="ep-step"><div class="ep-sn" style="background:${mid}">3</div><div><div class="ep-st">${reward} 즉시 적립!</div><div class="ep-sd">가입 완료 후 3영업일 이내 자동 적립</div></div></div></div><div class="ep-cta" style="background:linear-gradient(135deg,${from},${mid},${to})">${dc}</div></div>`;
+}
+function fillV4(){document.getElementById('v4-tmpl').textContent=tmplNames[tmpl]||tmpl;document.getElementById('v4-title').textContent=genTitles[selTI]||g('ev-title')||'—';document.getElementById('v4-cta').textContent=genCtas[selCI]||'지금 친구 초대하기 →';}
+function fillSummary(){const s=g('ev-start'),e=g('ev-end');document.getElementById('s-title').textContent=g('ev-title')||'—';document.getElementById('s-period').textContent=fmt(s)+' ~ '+fmt(e);document.getElementById('s-reward').textContent=g('ev-reward')||'—';document.getElementById('s-tmpl').textContent=tmplNames[tmpl]||tmpl;document.getElementById('s-model').textContent={claude:'Claude',nano:'NanoBanana',gemini:'Gemini'}[model]||'Claude';document.getElementById('ck-period').textContent=fmt(s)+' ~ '+fmt(e);document.getElementById('ck-reward').textContent=g('ev-reward')||'—';document.getElementById('ck-tmpl').textContent=tmplNames[tmpl]||tmpl;document.getElementById('ck-gen').textContent=genTitles.length?'완료 ✓':'미완료';}
+function doDeploy(){document.getElementById('deploy-btn').style.display='none';document.getElementById('deploy-done').classList.remove('hidden');}
+function doExport(){
+  const[from,mid,to,tc]=getC();
+  const title=genTitles[selTI]||g('ev-title');const sub=genSubs[selSI]||g('ev-desc');const cta=genCtas[selCI]||'지금 참여하기';
+  const reward=g('ev-reward');const s=fmt(g('ev-start'));const e=fmt(g('ev-end'));
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${title} | SKT air</title><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Noto Sans KR',sans-serif;background:#fafafa;max-width:480px;margin:0 auto}.nav{position:sticky;top:0;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.08)}.nav-logo{font-size:18px;font-weight:900;color:#E31B65}.hero{background:linear-gradient(160deg,${from},${mid} 50%,${to});padding:32px 22px 0;position:relative;overflow:hidden}.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:32px;background:#fafafa;border-radius:32px 32px 0 0}.period{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:99px;padding:4px 12px;font-size:11px;color:${tc==='lt'?'#fff':'#1a1a1a'};margin-bottom:12px}.dot{width:6px;height:6px;border-radius:50%;background:#FFD700}.htitle{font-size:22px;font-weight:900;color:${tc==='lt'?'#fff':'#1a1a1a'};line-height:1.35;margin-bottom:8px}.hsub{font-size:13px;color:${tc==='lt'?'rgba(255,255,255,0.88)':'rgba(0,0,0,0.7)'};line-height:1.65;margin-bottom:24px}.rcard{background:#fff;border-radius:14px 14px 0 0;padding:18px;display:flex;align-items:center;gap:12px;position:relative;z-index:1;box-shadow:0 -6px 20px rgba(0,0,0,0.08)}.ricon{width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,#FFE4EE,#FFCCE0);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}.ramt{font-size:24px;font-weight:900;color:${mid};letter-spacing:-0.03em}.rlabel{font-size:11px;color:#999;margin-bottom:2px}.runit{font-size:12px;color:#666;margin-top:2px}.body{padding:0 20px 80px}.sec{font-size:11px;font-weight:700;color:${mid};letter-spacing:0.08em;padding-top:20px;margin-bottom:12px}.steps{display:flex;flex-direction:column;gap:9px}.step{background:#fff;border-radius:10px;padding:13px 15px;display:flex;gap:12px;align-items:flex-start;border:1px solid rgba(0,0,0,0.06)}.snum{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,${mid},${to});color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}.stitle{font-size:13px;font-weight:700;margin-bottom:2px}.sdesc{font-size:11px;color:#666;line-height:1.6}.cta{display:block;width:100%;background:linear-gradient(135deg,${from},${mid} 60%,${to});color:${tc==='lt'?'#fff':'#1a1a1a'};font-size:15px;font-weight:700;font-family:'Noto Sans KR',sans-serif;padding:16px;border-radius:14px;border:none;cursor:pointer;text-align:center;margin:20px 0 8px;box-shadow:0 8px 24px rgba(0,0,0,0.18)}</style></head><body><nav class="nav"><span style="font-size:13px;color:#777">← 이벤트</span><span class="nav-logo">air</span><span></span></nav><div class="hero"><div class="period"><span class="dot"></span>${s} ~ ${e} 진행중</div><h1 class="htitle">${title}</h1><p class="hsub">${sub}</p><div class="rcard"><div class="ricon">🎁</div><div><div class="rlabel">참여 시 즉시 지급</div><div class="ramt">${reward}</div><div class="runit">T포인트 · 적립 후 바로 사용 가능</div></div></div></div><div class="body"><div class="sec">참여 방법</div><div class="steps"><div class="step"><div class="snum">1</div><div><div class="stitle">초대 링크 공유</div><div class="sdesc">SKT air 앱에서 나만의 초대 링크를 복사하거나 카카오톡으로 공유하세요</div></div></div><div class="step"><div class="snum">2</div><div><div class="stitle">친구가 SKT air 가입</div><div class="sdesc">초대받은 친구가 링크를 통해 신규 가입하고 개통을 완료합니다</div></div></div><div class="step"><div class="snum">3</div><div><div class="stitle">${reward} 즉시 적립!</div><div class="sdesc">가입 완료 후 영업일 기준 3일 이내 자동 적립됩니다</div></div></div></div><button class="cta">${cta}</button></div></body></html>`;
+  const a=document.createElement('a');a.href='data:text/html;charset=utf-8,'+encodeURIComponent(html);a.download='sktair_event.html';a.click();
+}
+renderStep();syncPreview();
+</script>
+</body>
+</html>
